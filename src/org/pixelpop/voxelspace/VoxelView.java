@@ -1,8 +1,11 @@
 package org.pixelpop.voxelspace;
 
-public class VoxelView {
+public class VoxelView implements Runnable {
     private VoxelSpace voxelSpace;
+    private int[][] clearRaster;
+    private int[][] imageRaster;
     private int[] image;
+
 
     //Image size
     private int width;
@@ -24,6 +27,10 @@ public class VoxelView {
     private final double[] xSteps;
     private final double[] ySteps;
 
+    private Thread[] renderers;
+
+    private int horizonHeight;
+
     /**
      * Instantiates a VoxelView
      * @param width the width of the view screen
@@ -33,6 +40,8 @@ public class VoxelView {
         this.voxelSpace = voxelSpace;
         this.width = width;
         this.height = height;
+        clearRaster = new int[width][height];
+        imageRaster = new int[width][height];
         image = new int[width * height];
         fieldOfView = 1.5;
 
@@ -58,41 +67,53 @@ public class VoxelView {
             ySteps[i] = viewDepth / rayLengths[i];
         }
 
-        heightTwo = height / 2;
-    }
-    int heightTwo;
+        horizonHeight = height / 2;
 
-    private void clear() {
-        for(int i = 0; i < width * height; i++) {
-        image[i] = 0;
+        for(int i = 0; i < clearRaster.length; i++) {
+            for(int j = 0; j < clearRaster[i].length; j++) {
+                clearRaster[i][j] = 0;
+            }
+        }
+
+        renderers = new Thread[4];
+
+        for(int i = 0; i < renderers.length; i++) {
+            int rendererNumber = i;
+            int rasterSize = width / renderers.length;
+            renderers[i] = new Thread(new Runnable() {
+                private int adjustment = rasterSize * (rendererNumber);
+                @Override
+                public void run() {
+                    for(int i = 0; i < rasterSize; i++) {
+                        double rayPositionX = ((Math.sin(rotationZ) * viewDepth) + (Math.cos(rotationZ) * xAdjustments[adjustment + i]));
+                        double rayPositionY = ((Math.cos(rotationZ) * viewDepth) - (Math.sin(rotationZ) * xAdjustments[adjustment + i]));
+
+                        traceRay(adjustment + i, rayPositionX, rayPositionY);
+                    }
+                }
+            });
+        }
     }
-}
 
     /**
      * Updates the view screen according to the properties of the camera
      */
-    public void update() {
-        long timetamp = System.currentTimeMillis();
-        clear();
-        long afterClear = System.currentTimeMillis();
-        long afterDirections = 0;
-        long fromStart = System.nanoTime();
-        for(int i = 0; i < width; i++) {
-            if(i == 0) {
-                fromStart = System.nanoTime();
-            }
-            double rayPositionX = ((Math.sin(rotationZ) * viewDepth) + (Math.cos(rotationZ) * xAdjustments[i]));
-            double rayPositionY = ((Math.cos(rotationZ) * viewDepth) - (Math.sin(rotationZ) * xAdjustments[i]));
-            if(i == 0) {
-                afterDirections = System.nanoTime();
-            }
-            traceRay(i, rayPositionX, rayPositionY);
-            if(i == 0) {
-                System.out.println("Trace timings: " + (System.nanoTime() - afterDirections) + " " + (afterDirections - fromStart));
-            }
-
+    public void update() throws InterruptedException {
+        for(int i = 0; i < imageRaster.length; i++) {
+            System.arraycopy(clearRaster[i], 0, imageRaster[i], 0, clearRaster[i].length);
         }
-        System.out.println(afterClear - timetamp + " " + (System.currentTimeMillis() - afterClear));
+
+        for(Thread thread : renderers) {
+            thread.run();
+        }
+
+        for(Thread thread : renderers) {
+            thread.join();
+        }
+
+        for(int i = 0; i < width * height; i++) {
+            image[i] = imageRaster[i % width][i / width];
+        }
     }
 
     public void traceRay(int columnNo, double rayPositionX, double rayPositionY) {
@@ -109,46 +130,16 @@ public class VoxelView {
             int voxelColor = voxelSpace.colorMap[(((int)pixelPositionX) & (1023)) + ((((int)pixelPositionY) & (1023)) * 1024)];
 
             double voxelHeight = (voxelSpace.heightMap[(((int) pixelPositionX) & (1023)) + ((((int) pixelPositionY) & (1023)) * 1024)] & 0xFF) - positionZ;
-            int absoluteHeight = (int)(heightTwo + voxelHeight / (depthSteps[columnNo] * i) * 100);
+            int absoluteHeight = (int)(horizonHeight + voxelHeight / (depthSteps[columnNo] * i) * 100);
 
-            //double absoluteHeight = heightTwo + relativeHeight;
+            //double absoluteHeight = horizonHeight + relativeHeight;
             for(int k = painted; k < absoluteHeight; k++) {
-                image[width * (height - k - 1) + columnNo] = voxelColor;
+                imageRaster[columnNo][height - k - 1] = voxelColor;
                 painted = k;
             }
 
         }
     }
-
-    /*private void traceRay(int columnNo, double rayPositionX, double rayPositionY) {
-        double pixelPositionX = positionX;
-        double pixelPositionY = positionY;
-
-        double xStep = rayPositionX / rayLengths[columnNo];
-        double yStep = rayPositionY / rayLengths[columnNo];
-
-        int painted = 0;
-        for(int i = 1; i < rayLengths[columnNo]; i++) {
-            pixelPositionX += xStep;
-            pixelPositionY += yStep;
-            //int voxelColor2 = voxelSpace.getColor((int)pixelPositionX, (int)pixelPositionY);
-            //int voxelHeight2 = voxelSpace.getHeight((int)pixelPositionX, (int)pixelPositionY);
-            int voxelColor = voxelSpace.colorMap[(((int)pixelPositionX) & (1024 - 1)) + ((((int)pixelPositionY) & (1024 - 1)) * 1024)];
-            int voxelHeight = voxelSpace.heightMap[(((int)pixelPositionX) & (1024 - 1)) + ((((int)pixelPositionY) & (1024 - 1)) * 1024)] & 0xFF;
-            //if(columnNo == 0 && (voxelColor != voxelColor2 || voxelHeight != voxelHeight2)) System.out.println(voxelColor + "  " + voxelHeight + " | " + voxelColor2 + "  " + voxelHeight2);
-
-            voxelHeight -= (double)positionZ;
-
-            double relativeHeight = voxelHeight / (depthSteps[columnNo] * i) * 100;
-
-            double absoluteHeight = (height / 2) + relativeHeight;
-            for(int k = painted; k < (int) absoluteHeight; k++) {
-                image[width * (height - k - 1) + columnNo] = voxelColor;
-                painted = k;
-            }
-
-        }
-    }*/
 
     public int[] getImage() {
         return image;
@@ -165,4 +156,8 @@ public class VoxelView {
         positionZ = voxelSpace.getHeight((int)positionX, (int)positionY) + hover;
     }
 
+    @Override
+    public void run() {
+
+    }
 }

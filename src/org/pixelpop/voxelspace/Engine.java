@@ -20,7 +20,7 @@ public class Engine {
     private BufferedImage rendering;
     private JFrame frame;
 
-    public Engine() throws IOException {
+    private Engine() throws IOException {
         frame = new JFrame();
         frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
         frame.setUndecorated(true);
@@ -37,8 +37,8 @@ public class Engine {
         };
 
         canvas.addMouseMotionListener(new MouseMotionListener() {
-            public int lastMousePositionY = -1;
-            public int lastMousePositionX = -1;
+            private int lastMousePositionY = -1;
+            private int lastMousePositionX = -1;
 
             @Override
             public void mouseDragged(MouseEvent e) {
@@ -70,12 +70,16 @@ public class Engine {
 
     }
 
-    public void close() {
+    private void close() {
         frame.dispose();
     }
 
-    public void update() {
-        voxelView.update();
+    private void update() {
+        try {
+            voxelView.update();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         rendering.getRaster().setDataElements(0, 0, width, height, voxelView.getImage());
         frame.repaint();
 
@@ -84,7 +88,7 @@ public class Engine {
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        int noFrames = 10;
+        int noFrames = 1000;
         long frameTime = 16;
         Engine engine = new Engine();
 
