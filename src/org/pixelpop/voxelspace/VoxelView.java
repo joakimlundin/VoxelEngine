@@ -27,7 +27,7 @@ public class VoxelView {
     private final double[] xSteps;
     private final double[] ySteps;
 
-    private Thread[] renderers;
+    private Runnable[] renderers;
 
     private int horizonHeight;
 
@@ -43,7 +43,7 @@ public class VoxelView {
         clearRaster = new int[width][height];
         imageRaster = new int[width][height];
         image = new int[width * height];
-        fieldOfView = 1.5;
+        fieldOfView = 1.2;
 
         viewDepth = 400;
         positionX = 512;
@@ -75,23 +75,23 @@ public class VoxelView {
             }
         }
 
-        renderers = new Thread[4];
+        renderers = new Runnable[4];
 
         for(int i = 0; i < renderers.length; i++) {
             int rendererNumber = i;
             int rasterSize = width / renderers.length;
-            renderers[i] = new Thread(new Runnable() {
+            renderers[i] = new Runnable() {
                 private int adjustment = rasterSize * (rendererNumber);
                 @Override
                 public void run() {
                     for(int i = 0; i < rasterSize; i++) {
-                        double rayPositionX = ((Math.sin(rotationZ) * viewDepth) + (Math.cos(rotationZ) * xAdjustments[adjustment + i]));
+                        double rayPositionX = ((Math .sin(rotationZ) * viewDepth) + (Math.cos(rotationZ) * xAdjustments[adjustment + i]));
                         double rayPositionY = ((Math.cos(rotationZ) * viewDepth) - (Math.sin(rotationZ) * xAdjustments[adjustment + i]));
 
                         traceRay(adjustment + i, rayPositionX, rayPositionY);
                     }
                 }
-            });
+            };
         }
     }
 
@@ -103,11 +103,14 @@ public class VoxelView {
             System.arraycopy(clearRaster[i], 0, imageRaster[i], 0, clearRaster[i].length);
         }
 
-        for(Thread thread : renderers) {
-            thread.run();
+        Thread[] threads = new Thread[renderers.length];
+
+        for(int i = 0; i < renderers.length; i++) {
+            threads[i] = new Thread(renderers[i]);
+            threads[i].start();
         }
 
-        for(Thread thread : renderers) {
+        for(Thread thread : threads) {
             thread.join();
         }
 

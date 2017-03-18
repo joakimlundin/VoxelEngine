@@ -11,8 +11,8 @@ import java.io.IOException;
  * Created by Joakim on 3/13/2017.
  */
 public class Engine {
-    private int width = 800;
-    private int height = 450;
+    private int width = 1920;
+    private int height = 1080;
 
     private VoxelView voxelView;
     private VoxelSpace voxelSpace;
