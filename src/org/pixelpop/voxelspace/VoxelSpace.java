@@ -32,6 +32,47 @@ public class VoxelSpace {
         BufferedImage blImage = new BufferedImage(heightImage.getWidth(), heightImage.getHeight(), BufferedImage.TYPE_USHORT_GRAY);
         blImage.getGraphics().drawImage(heightImage, 0, 0, null);
         heightMap = ((DataBufferUShort)blImage.getRaster().getDataBuffer()).getData();
+
+    }
+
+    public VoxelSpace(int width, int height) {
+        this.width = width;
+        this.height = height;
+
+        colorMap = new int[width * height];
+        heightMap = new short[width * height];
+
+        addBump(90, 400, 400, 400);
+        addBump(110, 70, 200, 200);
+        addBump(130, 40, 300, 300);
+        addBump(120, 80, 500, 500);
+        addBump(100, 30, 600, 600);
+        addBump(170, 80, 700, 700);
+        addBump(100, 20, 800, 800);
+        addBump(100, 80, 200, 800);
+        addBump(80, 200, 300, 700);
+        addBump(140, 150, 400, 900);
+
+        for(int i = 0; i < colorMap.length; i++) {
+            if(heightMap[i] > 20) {
+                colorMap[i] = (100 + (int) (Math.random() * 50)) << 8;
+            } else {
+                colorMap[i] = 100 + (int) (Math.random() * 50);
+            }
+        }
+
+    }
+
+    private void addBump(int bumpHeight, int steepness, int x, int y) {
+        double maxDistance = steepness;
+
+        for(int i = 0; i < steepness * 2; i++) {
+            for(int j = 0; j < steepness * 2; j++) {
+                double distance = Math.sqrt((i - steepness) * (i - steepness) + (j - steepness) * (j - steepness));
+                if(distance > maxDistance) continue;
+                heightMap[((x - steepness + i) & (width - 1)) + (((y - steepness + j) & (height - 1)) * width)] += (short)((Math.cos((distance * Math.PI)/steepness) + 1) * bumpHeight / 2);
+            }
+        }
     }
 
     public int getColor(int x, int y) {

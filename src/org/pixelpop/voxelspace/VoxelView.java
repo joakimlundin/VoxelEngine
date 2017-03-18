@@ -1,6 +1,6 @@
 package org.pixelpop.voxelspace;
 
-public class VoxelView implements Runnable {
+public class VoxelView {
     private VoxelSpace voxelSpace;
     private int[][] clearRaster;
     private int[][] imageRaster;
@@ -154,10 +154,5 @@ public class VoxelView implements Runnable {
         positionY += Math.cos(rotationZ) * move;
 
         positionZ = voxelSpace.getHeight((int)positionX, (int)positionY) + hover;
-    }
-
-    @Override
-    public void run() {
-
     }
 }

@@ -10,7 +10,6 @@ public class TraceBenchMark {
     VoxelView view;
 
     public TraceBenchMark() throws IOException {
-        space = new VoxelSpace(this.getClass().getResourceAsStream("/rockcolor.png"), this.getClass().getResourceAsStream("/rocky.png"));
         view = new VoxelView(space, 800, 450);
     }
 

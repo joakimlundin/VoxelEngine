@@ -65,7 +65,7 @@ public class Engine {
 
         rendering = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
 
-        voxelSpace = new VoxelSpace(this.getClass().getResourceAsStream("/rockcolor.png"), this.getClass().getResourceAsStream("/rocky.png"));
+        voxelSpace = new VoxelSpace(1024, 1024);
         voxelView = new VoxelView(voxelSpace, width, height);
 
     }
